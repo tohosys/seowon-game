@@ -1,4 +1,4 @@
-const CACHE = 'seowon-pwa-v1';
+const CACHE = 'seowon-pwa-v2';
 const CORE = [
   './',
   './index.html',
@@ -35,10 +35,14 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    const hit = await cache.match(req);
-    if (hit) return hit;
-    const res = await fetch(req);
-    if (res.ok) cache.put(req, res.clone());
-    return res;
+    try {
+      const res = await fetch(req);
+      if (res.ok) cache.put(req, res.clone());
+      return res;
+    } catch (e) {
+      const hit = await cache.match(req) || (req.mode === 'navigate' ? await cache.match('./index.html') : null);
+      if (hit) return hit;
+      throw e;
+    }
   })());
 });
