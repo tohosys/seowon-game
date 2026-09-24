@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#07152d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="서원게임">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>서원 게임 No1. 추석 불꽃놀이</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07152d;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;touch-action:manipulation;overscroll-behavior:none}
+canvas{width:100vw;height:100vh;display:block;cursor:pointer;touch-action:manipulation}
+#title{position:fixed;top:max(12px,env(safe-area-inset-top));left:0;width:100%;text-align:center;color:#fff;font-size:clamp(25px,4vw,48px);font-weight:900;text-shadow:0 4px 12px #000b;pointer-events:none}
+#hint{position:fixed;bottom:max(14px,env(safe-area-inset-bottom));left:0;width:100%;text-align:center;color:#fff;font-size:clamp(17px,2.4vw,28px);font-weight:900;text-shadow:0 3px 8px #000b;pointer-events:none}
+#veil{display:none;position:fixed;inset:0;background:#0009;z-index:19}
+#stage{display:none;position:fixed;z-index:20;inset:0;align-items:center;justify-content:center;pointer-events:none}
+#media{display:none;max-width:88vw;max-height:84vh;border:8px solid white;border-radius:24px;box-shadow:0 15px 60px #000d;background:#fff;pointer-events:auto}
+#video{display:none;position:fixed;z-index:21;left:6vw;top:8vh;width:88vw;height:84vh;object-fit:contain;background:#000;pointer-events:auto;outline:8px solid #fff}
+#veil.show,#media.show,#video.show{display:block}
+#stage.show{display:flex}
+#media.show{animation:pop .25s ease-out}
+@keyframes pop{from{transform:scale(.55);opacity:0}to{transform:scale(1);opacity:1}}
+#status{position:fixed;left:max(10px,env(safe-area-inset-left));bottom:max(52px,calc(env(safe-area-inset-bottom) + 46px));color:#fff;font-size:12px;opacity:.5;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="title">🌕 서원 게임 No1. 추석 불꽃놀이 🎆</div>
+<div id="hint">🌕 달을 톡! 눌러 보세요</div>
+<div id="veil"></div>
+<div id="stage">
+<img id="media" alt="">
+<video id="video" playsinline webkit-playsinline preload="auto"></video>
+</div>
+<div id="status"></div>
+<script>
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+const veil=document.getElementById('veil'), stage=document.getElementById('stage'), media=document.getElementById('media'), video=document.getElementById('video');
+const hint=document.getElementById('hint'),status=document.getElementById('status');
+let W,H,dpr,particles=[],rings=[],audioCtx,lastClick=0,mediaIndex=0,mediaList=[];
+let slideshow=false, slideTimer=0, showToken=0;
+let moon={x:0,y:0,r:72}, turtleX=-80,rabbitX=0,crocOpen=true,crocTimer;
+const TAU=Math.PI*2;
+function resize(){
+ dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+ moon.r=Math.max(46,Math.min(72,Math.min(W,H)*0.11));
+ moon.x=W-moon.r-20;moon.y=moon.r+24;
+} resize();addEventListener('resize',resize);
+
+async function loadFiles(){
+ try{
+  if(window.seowonAPI){
+   mediaList=await window.seowonAPI.listMedia();
+   status.textContent=mediaList.length?`사진/동영상 ${mediaList.length}개`:'게임공유 폴더가 비어 있습니다';
+   return;
+  }
+  const res=await fetch('media/manifest.json');
+  if(!res.ok) throw new Error('manifest');
+  mediaList=await res.json();
+  status.textContent=mediaList.length?`사진/동영상 ${mediaList.length}개`:'media 폴더가 비어 있습니다';
+ } catch(e){
+  status.textContent=window.seowonAPI?'게임공유 폴더 연결 실패':'media/manifest.json 을 찾지 못했습니다';
+ }
+}
+loadFiles();
+
+function sound(n=Math.floor(Math.random()*5)){try{
+ audioCtx ||= new (window.AudioContext||window.webkitAudioContext)(); audioCtx.resume();
+ let o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime;
+ o.connect(g);g.connect(audioCtx.destination);o.type=['sine','triangle','sine','square','sine'][n];
+ o.frequency.setValueAtTime([520,390,880,260,330][n],t);o.frequency.exponentialRampToValueAtTime([980,820,1500,100,760][n],t+.22);
+ g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.13,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.32);o.start(t);o.stop(t+.34);
+}catch(e){}}
+
+function burst(x,y){
+ let cols=[[255,75,80],[255,205,50],[70,180,255],[150,255,120],[220,110,255]][Math.floor(Math.random()*5)];
+ for(let i=0;i<105;i++){let a=Math.random()*TAU,s=2+Math.random()*7.5;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:65+Math.random()*30,max:95,r:2+Math.random()*4,col:cols})}
+ rings.push({x,y,r:5,life:22,max:22});sound()
+}
+function makeBubbles(x,y){for(let i=0;i<25;i++)bubbleParticles.push({x:x+(Math.random()-.5)*30,y:y+(Math.random()-.5)*15,vx:(Math.random()-.5)*2,vy:-2-Math.random()*3,r:8+Math.random()*22,life:140+Math.random()*60,h:Math.random()*360});sound(4)}
+const bubbleParticles=[];
+
+function clearSlideTimer(){clearTimeout(slideTimer);slideTimer=0}
+function armSlide(){
+ clearSlideTimer();
+ const token=showToken;
+ slideTimer=setTimeout(()=>{ if(slideshow && token===showToken) showNextMedia() },5000);
+}
+function hidePicture(){
+ media.classList.remove('show');
+ video.onloadeddata=null;
+ video.pause();
+ video.removeAttribute('src');
+ video.load();
+ video.classList.remove('show');
+}
+function playVideo(){
+ video.playsInline=true;
+ video.muted=false;
+ const pending=video.play();
+ if(pending&&pending.catch) pending.catch(()=>{ video.muted=true; video.play().catch(()=>{}); });
+}
+async function showNextMedia(){
+ if(!mediaList.length){await loadFiles()}
+ if(!mediaList.length){slideshow=false;clearSlideTimer();hint.textContent='📂 사진이나 동영상을 media 폴더에 넣어 주세요';return}
+ slideshow=true;
+ const token=++showToken;
+ const f=mediaList[mediaIndex++%mediaList.length];
+ let url=f.path;
+ if(window.seowonAPI) url=await window.seowonAPI.mediaUrl(f.path);
+ if(!slideshow||token!==showToken) return;
+ veil.classList.add('show'); stage.classList.add('show');
+ hint.textContent='💖 다른 곳을 누르면 멈춰요';
+ if(f.type==='video'){
+  media.classList.remove('show');
+  video.onloadeddata=()=>{ video.onloadeddata=null; playVideo(); };
+  video.src=url;
+  video.classList.add('show');
+  if(video.readyState>=2) playVideo();
+ }else{
+  hidePicture();
+  media.src=url; media.classList.add('show');
+ }
+ armSlide();
+}
+function hideMedia(){
+ veil.classList.remove('show'); stage.classList.remove('show'); hidePicture();
+ hint.textContent='🌕 달을 톡! 눌러 보세요';
+}
+function stopSlideshow(){slideshow=false;showToken++;clearSlideTimer();hideMedia()}
+function onOverlayClick(e){
+ if(moonHit(e.clientX,e.clientY)){showNextMedia();sound(2);return}
+ stopSlideshow();
+}
+media.addEventListener('pointerdown',onOverlayClick);
+video.addEventListener('pointerdown',onOverlayClick);
+veil.addEventListener('pointerdown',onOverlayClick);
+
+function moonHit(x,y){return Math.hypot(x-moon.x,y-moon.y)<moon.r+25}
+c.addEventListener('pointerdown',e=>{
+ let now=performance.now(), dbl=now-lastClick<360;lastClick=now;
+ if(moonHit(e.clientX,e.clientY)){showNextMedia();sound(2);return}
+ // 악어 클릭 영역
+ let cx=90,cy=H-88;
+ if(e.clientX<210&&e.clientY>H-170){crocOpen=false;clearTimeout(crocTimer);crocTimer=setTimeout(()=>crocOpen=true,5000);sound(3);return}
+ if(dbl)makeBubbles(e.clientX,e.clientY);else burst(e.clientX,e.clientY);
+});
+
+function bg(t){
+ let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#07132e');g.addColorStop(1,'#173b69');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ for(let i=0;i<60;i++){let x=(i*83)%W,y=(i*47)%(H*.68),a=.25+.5*Math.sin(t*.002+i);ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fillRect(x,y,2,2)}
+ // big sparkling moon
+ ctx.save();ctx.translate(moon.x,moon.y);let p=1+.045*Math.sin(t*.006);ctx.scale(p,p);
+ ctx.shadowBlur=45;ctx.shadowColor='#fff7a0';ctx.beginPath();ctx.arc(0,0,moon.r,0,TAU);ctx.fillStyle='#fff3a8';ctx.fill();ctx.shadowBlur=0;
+ ctx.fillStyle='#e4d477';[[-20,-12,6],[15,-22,5],[-5,20,8],[27,12,4]].forEach(q=>{ctx.beginPath();ctx.arc(...q,0,TAU);ctx.fill()});
+ // sparkle rays
+ ctx.strokeStyle='#fff';ctx.lineWidth=4;for(let i=0;i<8;i++){let a=i*TAU/8;let l=moon.r+20+10*Math.sin(t*.01+i);ctx.beginPath();ctx.moveTo(Math.cos(a)*(moon.r+8),Math.sin(a)*(moon.r+8));ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l);ctx.stroke()}
+ ctx.restore();
+ // hills
+ ctx.fillStyle='#0a2634';ctx.beginPath();ctx.moveTo(0,H);ctx.quadraticCurveTo(W*.18,H-120,W*.38,H-65);ctx.quadraticCurveTo(W*.58,H-135,W*.78,H-60);ctx.quadraticCurveTo(W*.9,H-25,W,H-100);ctx.lineTo(W,H);ctx.fill();
+ // water
+ ctx.fillStyle='#174e68';ctx.beginPath();ctx.moveTo(0,H-115);ctx.quadraticCurveTo(90,H-140,185,H-105);ctx.lineTo(185,H);ctx.lineTo(0,H);ctx.fill();
+ ctx.strokeStyle='#51b9d5';ctx.lineWidth=3;for(let y=H-90;y<H;y+=24){ctx.beginPath();ctx.moveTo(15,y);ctx.quadraticCurveTo(60,y-7,140,y);ctx.stroke()}
+}
+
+function rabbit(x,y){ctx.save();ctx.translate(x,y);ctx.scale(1.0,.9);ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(0,0,25,18,0,0,TAU);ctx.fill();ctx.beginPath();ctx.ellipse(22,-18,17,16,0,0,TAU);ctx.fill();ctx.beginPath();ctx.ellipse(14,-43,7,25,0,0,TAU);ctx.fill();ctx.beginPath();ctx.ellipse(28,-43,7,25,0,0,TAU);ctx.fill();ctx.fillStyle='#222';ctx.beginPath();ctx.arc(28,-21,3,0,TAU);ctx.fill();ctx.restore()}
+function turtle(x,y){ctx.save();ctx.translate(x,y);ctx.fillStyle='#3a9b55';ctx.beginPath();ctx.ellipse(0,0,34,23,0,0,TAU);ctx.fill();ctx.fillStyle='#75c96b';ctx.beginPath();ctx.arc(36,-2,11,0,TAU);ctx.fill();ctx.fillStyle='#244c35';for(let a=0;a<6;a++){let x2=Math.cos(a*TAU/6)*18,y2=Math.sin(a*TAU/6)*12;ctx.beginPath();ctx.arc(x2,y2,7,0,TAU);ctx.fill()}ctx.fillStyle='#111';ctx.beginPath();ctx.arc(40,-5,2,0,TAU);ctx.fill();ctx.restore()}
+function crocodile(t){let x=88,y=H-70;ctx.save();ctx.translate(x,y);ctx.fillStyle='#4b9a3d';ctx.beginPath();ctx.ellipse(0,20,90,30,0,0,TAU);ctx.fill();ctx.fillStyle='#65b84e';ctx.beginPath();ctx.ellipse(40,-2,55,crocOpen?27:15,0,0,TAU);ctx.fill();
+ // jaw
+ if(crocOpen){ctx.fillStyle='#7bcf62';ctx.beginPath();ctx.moveTo(0,-2);ctx.lineTo(92,-5);ctx.lineTo(83,18);ctx.lineTo(12,18);ctx.closePath();ctx.fill();ctx.fillStyle='#fff';for(let i=0;i<7;i++){ctx.fillRect(30+i*9,-9,5,9)}}
+ else{ctx.fillStyle='#fff';for(let i=0;i<7;i++){ctx.fillRect(30+i*9,-3,5,7)}}
+ ctx.fillStyle='#111';ctx.beginPath();ctx.arc(70,-18,4,0,TAU);ctx.fill();ctx.restore()}
+
+function frame(t){
+ bg(t);
+ turtleX=(t*.025)% (W+160)-80; rabbitX=W-((t*.018)%(W+180)); turtle(turtleX,H-82); rabbit(rabbitX,H-145);crocodile(t);
+ for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.045;p.vx*=.985;p.life--;if(p.life<=0){particles.splice(i,1);continue}ctx.globalAlpha=p.life/p.max;ctx.fillStyle=`rgb(${p.col})`;ctx.shadowBlur=15;ctx.shadowColor=ctx.fillStyle;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,TAU);ctx.fill()}
+ for(let i=rings.length-1;i>=0;i--){let q=rings[i];q.life--;q.r+=7;if(q.life<=0){rings.splice(i,1);continue}ctx.globalAlpha=q.life/q.max;ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,TAU);ctx.stroke()}
+ for(let i=bubbleParticles.length-1;i>=0;i--){let b=bubbleParticles[i];b.x+=b.vx;b.y+=b.vy;b.vy+=.01;b.life--;if(b.life<=0){bubbleParticles.splice(i,1);continue}ctx.globalAlpha=Math.min(1,b.life/30);ctx.strokeStyle=`hsla(${b.h},90%,80%,.8)`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,TAU);ctx.stroke()}
+ ctx.globalAlpha=1;ctx.shadowBlur=0;requestAnimationFrame(frame)
+}
+requestAnimationFrame(frame);
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+ navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body></html>

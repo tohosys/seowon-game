@@ -1,0 +1,36 @@
+{
+  "name": "seowon-game",
+  "version": "1.0.0",
+  "description": "서원 게임 No1. 추석 불꽃놀이",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "sync-media": "node scripts/sync-media.js",
+    "web": "npx --yes serve . -p 5173",
+    "dist": "electron-builder --win portable",
+    "pack-win": "electron-builder --win dir"
+  },
+  "devDependencies": {
+    "electron": "^38.1.2",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.seowon.game.chuseok",
+    "productName": "SeowonGame",
+    "files": [
+      "index.html",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "SeowonGame.exe"
+    }
+  }
+}
