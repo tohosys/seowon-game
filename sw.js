@@ -1,11 +1,13 @@
-const CACHE = 'seowon-pwa-v3';
+const CACHE = 'seowon-pwa-v4';
 const CORE = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './splash/start.png'
+  './splash/start.png',
+  './sounds/1.wav','./sounds/2.wav','./sounds/3.wav','./sounds/4.wav','./sounds/5.wav',
+  './sounds/6.wav','./sounds/7.wav','./sounds/8.wav','./sounds/9.wav'
 ];
 
 self.addEventListener('install', (event) => {

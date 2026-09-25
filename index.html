@@ -76,7 +76,6 @@ let slideshow=false, slideTimer=0, showToken=0, slideSeconds=5, soundLevel=1, ma
 let moon={x:0,y:0,r:72}, turtleX=120,rabbitX=240,turtleDir=0,rabbitDir=0,turtleFace=1,rabbitFace=1,animalT=0,animalsPlaced=false,crocOpen=false,crocJaw=0,crocTimer=0,crocShown=false,crocSize=1,crocSizeTarget=1,crocMax=1.8,crocGeom={x:96,y:0,s:1},crocTeeth=[],crocEye={x:0,y:0,r:22},crocSnout={x:0,y:0,r:0},crocBlink=0,crocNextBlink=0;
 const TAU=Math.PI*2;
 const starCols=[[255,64,72],[255,145,40],[255,214,48],[64,206,92],[62,146,255],[72,64,220],[176,92,255]];
-const numSay=['','일','이','삼','사','오','육','칠','팔','구'];
 let skyMode='color', chosenCol=starCols[0], chosenMark=null;
 const skyStars=[];
 function resize(){
@@ -125,38 +124,34 @@ function sound(n=Math.floor(Math.random()*5)){try{
  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.13,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.32);o.start(t);o.stop(t+.34);
 }catch(e){}}
 
-function prepVoice(u){
- u.lang='ko-KR';
- const voice=speechSynthesis.getVoices().find(v=>/^ko/i.test(v.lang||''));
- if(voice) u.voice=voice;
- u.volume=soundLevel;
- u.rate=0.95;
- u.pitch=1.15;
+const countBufs=[];
+function loadCountSounds(){
+ try{
+  const Ctx=window.AudioContext||window.webkitAudioContext;
+  if(!Ctx) return;
+  audioCtx ||= new Ctx();
+  if(!masterGain){ masterGain=audioCtx.createGain(); masterGain.connect(audioCtx.destination); }
+  masterGain.gain.value=soundLevel;
+  for(let n=1;n<=9;n++){
+   fetch('sounds/'+n+'.wav').then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); }).then(b=>audioCtx.decodeAudioData(b)).then(buf=>{ countBufs[n]=buf; }).catch(()=>{});
+  }
+ }catch(e){}
 }
-function speakCount(text){try{
- if(menuOpen||soundLevel<=0||!text||!window.speechSynthesis) return;
- const u=new SpeechSynthesisUtterance(text);
- prepVoice(u);
- speechSynthesis.resume();
- speechSynthesis.speak(u);
+loadCountSounds();
+function playCount(n){try{
+ if(menuOpen||soundLevel<=0||!n||!countBufs[n]) return;
+ ensureAudio();
+ const src=audioCtx.createBufferSource();
+ src.buffer=countBufs[n];
+ src.connect(masterGain);
+ src.start();
 }catch(e){}}
-function holdCount(text){try{
- if(menuOpen||soundLevel<=0||!text||!window.speechSynthesis) return false;
- const u=new SpeechSynthesisUtterance(text);
- prepVoice(u);
- speechSynthesis.resume();
- speechSynthesis.speak(u);
- speechSynthesis.pause();
- return true;
-}catch(e){ return false; }}
 function burst(x,y,col,say){
  let cols=col||chosenCol;
  const scale=(Math.random()<0.65?0.55:1)*0.7;
  for(let i=0;i<105;i++){let a=Math.random()*TAU,s=(2+Math.random()*7.5)*scale;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:65+Math.random()*30,max:95,r:(2+Math.random()*4)*scale,col:cols})}
  rings.push({x,y,r:5,life:22,max:22,grow:7*scale,col:cols});
- if(say==='held'){ try{ speechSynthesis.resume(); }catch(e){} }
- else if(say) speakCount(say);
- else sound();
+ if(say) playCount(say); else sound();
 }
 const rockets=[];
 function skySpot(others,gap){
@@ -230,10 +225,10 @@ function launchSound(frames){try{
 function launchRocket(tx,ty,say){
  const from=hillLaunch();
  const dist=Math.hypot(tx-from.x,ty-from.y);
+ if(say) ensureAudio();
  if(dist<36){burst(tx,ty,chosenCol,say);return}
  const frames=Math.max(48,Math.min(108,dist/6.6));
- const held=!!(say && holdCount(say));
- rockets.push({sx:from.x,sy:from.y,tx,ty,t:0,frames,x:from.x,y:from.y,trail:[],col:chosenCol,say:held?'held':(say||'')});
+ rockets.push({sx:from.x,sy:from.y,tx,ty,t:0,frames,x:from.x,y:from.y,trail:[],col:chosenCol,say:say||0});
  launchSound(frames);
 }
 function stepRockets(){
@@ -357,7 +352,7 @@ c.addEventListener('pointerdown',e=>{
  if(wideScreen()&&crocToothHit(e.clientX,e.clientY)){crocSizeTarget=Math.min(crocMax,crocSizeTarget+(crocMax-1)/5);sound(1);return}
  if(pokeAnimal(e.clientX,e.clientY)) return;
  const picked=starHit(e.clientX,e.clientY);
- if(picked){ chosenCol=picked.col; chosenMark=picked; launchRocket(picked.x,picked.y,picked.n?numSay[picked.n]:''); return; }
+ if(picked){ chosenCol=picked.col; chosenMark=picked; launchRocket(picked.x,picked.y,picked.n||0); return; }
  if(dbl&&near)makeBubbles(e.clientX,e.clientY);else launchRocket(e.clientX,e.clientY);
 });
 
@@ -536,7 +531,6 @@ function crocodile(){
  ctx.save(); ctx.translate(hingeX,hingeY+2); ctx.rotate(jaw*.62);
  ctx.fillStyle='#6eaf52'; ctx.beginPath();
  ctx.moveTo(-2,0); ctx.quadraticCurveTo(80,8,214,10); ctx.quadraticCurveTo(246,16,232,22); ctx.quadraticCurveTo(120,26,8,14); ctx.closePath(); ctx.fill();
- ctx.fillStyle='#f0b7be'; ctx.beginPath(); ctx.ellipse(120,12,22,5,.05,0,TAU); ctx.fill();
  ctx.fillStyle='#fffaf0'; ctx.strokeStyle='#d5cdbc'; ctx.lineWidth=1;
  for(let i=0;i<10;i++) tooth(16+i*18,2,6,i%2?-15:-21);
  ctx.restore();
