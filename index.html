@@ -125,23 +125,38 @@ function sound(n=Math.floor(Math.random()*5)){try{
  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.13,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.32);o.start(t);o.stop(t+.34);
 }catch(e){}}
 
-function speakCount(text){try{
- if(menuOpen||soundLevel<=0||!text||!window.speechSynthesis) return;
- const u=new SpeechSynthesisUtterance(text);
+function prepVoice(u){
  u.lang='ko-KR';
  const voice=speechSynthesis.getVoices().find(v=>/^ko/i.test(v.lang||''));
  if(voice) u.voice=voice;
  u.volume=soundLevel;
  u.rate=0.95;
  u.pitch=1.15;
+}
+function speakCount(text){try{
+ if(menuOpen||soundLevel<=0||!text||!window.speechSynthesis) return;
+ const u=new SpeechSynthesisUtterance(text);
+ prepVoice(u);
+ speechSynthesis.resume();
  speechSynthesis.speak(u);
 }catch(e){}}
+function holdCount(text){try{
+ if(menuOpen||soundLevel<=0||!text||!window.speechSynthesis) return false;
+ const u=new SpeechSynthesisUtterance(text);
+ prepVoice(u);
+ speechSynthesis.resume();
+ speechSynthesis.speak(u);
+ speechSynthesis.pause();
+ return true;
+}catch(e){ return false; }}
 function burst(x,y,col,say){
  let cols=col||chosenCol;
  const scale=(Math.random()<0.65?0.55:1)*0.7;
  for(let i=0;i<105;i++){let a=Math.random()*TAU,s=(2+Math.random()*7.5)*scale;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:65+Math.random()*30,max:95,r:(2+Math.random()*4)*scale,col:cols})}
  rings.push({x,y,r:5,life:22,max:22,grow:7*scale,col:cols});
- if(say) speakCount(say); else sound();
+ if(say==='held'){ try{ speechSynthesis.resume(); }catch(e){} }
+ else if(say) speakCount(say);
+ else sound();
 }
 const rockets=[];
 function skySpot(others,gap){
@@ -217,7 +232,8 @@ function launchRocket(tx,ty,say){
  const dist=Math.hypot(tx-from.x,ty-from.y);
  if(dist<36){burst(tx,ty,chosenCol,say);return}
  const frames=Math.max(48,Math.min(108,dist/6.6));
- rockets.push({sx:from.x,sy:from.y,tx,ty,t:0,frames,x:from.x,y:from.y,trail:[],col:chosenCol,say:say||''});
+ const held=!!(say && holdCount(say));
+ rockets.push({sx:from.x,sy:from.y,tx,ty,t:0,frames,x:from.x,y:from.y,trail:[],col:chosenCol,say:held?'held':(say||'')});
  launchSound(frames);
 }
 function stepRockets(){

@@ -1,7 +1,7 @@
 {
   "name": "seowon-game",
   "version": "1.0.0",
-  "description": "서원 게임 No1. 추석 불꽃놀이",
+  "description": "서원게임 No1. 추석 불꽃놀이",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
