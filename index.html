@@ -37,9 +37,13 @@ canvas{width:100vw;height:100vh;display:block;cursor:pointer;touch-action:manipu
 .setting{display:flex;align-items:center;gap:12px;margin:10px 0;font-size:16px}
 .setting input{flex:1;min-width:0;accent-color:#ffe08a}
 .setting b{min-width:3.2em;text-align:right}
+#gate{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 46%,#1c4e86 0%,#07152d 62%);touch-action:manipulation;transition:opacity .28s ease}
+#gate[hidden]{display:none}
+#gate img{width:min(86vmin,560px);height:auto;border-radius:50%;display:block}
 </style>
 </head>
 <body>
+<div id="gate"><img src="splash/start.png" alt="" draggable="false"></div>
 <canvas id="c"></canvas>
 <div id="veil"></div>
 <div id="stage">
@@ -544,6 +548,14 @@ slideRange.addEventListener('input',()=>{
  try{ localStorage.setItem('seowon-slide',String(slideSeconds)); }catch(e){}
 });
 requestAnimationFrame(frame);
+const gate=document.getElementById('gate');
+gate.addEventListener('pointerdown',e=>{
+ e.preventDefault();
+ e.stopPropagation();
+ if(gate.hidden) return;
+ gate.style.opacity='0';
+ setTimeout(()=>{ gate.hidden=true; },280);
+});
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
  navigator.serviceWorker.register('sw.js').catch(()=>{});
 }

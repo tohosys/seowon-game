@@ -1,23 +1,8 @@
 [
   {
     "type": "video",
-    "name": "KakaoTalk_20260226_201946315.mp4",
-    "path": "media/KakaoTalk_20260226_201946315.mp4"
-  },
-  {
-    "type": "video",
     "name": "KakaoTalk_20260409_204750347.mp4",
     "path": "media/KakaoTalk_20260409_204750347.mp4"
-  },
-  {
-    "type": "image",
-    "name": "KakaoTalk_20260922_140820466_04.jpg",
-    "path": "media/KakaoTalk_20260922_140820466_04.jpg"
-  },
-  {
-    "type": "image",
-    "name": "KakaoTalk_20260922_140820466_07.jpg",
-    "path": "media/KakaoTalk_20260922_140820466_07.jpg"
   },
   {
     "type": "image",
@@ -26,13 +11,23 @@
   },
   {
     "type": "image",
-    "name": "KakaoTalk_20260923_123056991_01.jpg",
-    "path": "media/KakaoTalk_20260923_123056991_01.jpg"
+    "name": "KakaoTalk_20260923_123056991_02.jpg",
+    "path": "media/KakaoTalk_20260923_123056991_02.jpg"
   },
   {
     "type": "image",
-    "name": "KakaoTalk_20260923_123056991_02.jpg",
-    "path": "media/KakaoTalk_20260923_123056991_02.jpg"
+    "name": "KakaoTalk_20260925_154104595.jpg",
+    "path": "media/KakaoTalk_20260925_154104595.jpg"
+  },
+  {
+    "type": "image",
+    "name": "KakaoTalk_20260925_154127488.jpg",
+    "path": "media/KakaoTalk_20260925_154127488.jpg"
+  },
+  {
+    "type": "image",
+    "name": "KakaoTalk_20260925_154218788.jpg",
+    "path": "media/KakaoTalk_20260925_154218788.jpg"
   },
   {
     "type": "image",
