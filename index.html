@@ -346,8 +346,8 @@ c.addEventListener('pointerdown',e=>{
  if(menuOpen) return;
  let now=performance.now(), dbl=now-lastClick<360, near=Math.hypot(e.clientX-lastX,e.clientY-lastY)<48;
  lastClick=now; lastX=e.clientX; lastY=e.clientY;
- if(moonHit(e.clientX,e.clientY)){showNextMedia();sound(2);return}
  if(crocEyeHit(e.clientX,e.clientY)){crocShown=!crocShown;sound(2);return}
+ if(moonHit(e.clientX,e.clientY)){showNextMedia();sound(2);return}
  if(crocSnoutHit(e.clientX,e.clientY)){crocToggleMouth();return}
  if(wideScreen()&&crocToothHit(e.clientX,e.clientY)){crocSizeTarget=Math.min(crocMax,crocSizeTarget+(crocMax-1)/5);sound(1);return}
  if(pokeAnimal(e.clientX,e.clientY)) return;
@@ -446,8 +446,8 @@ function crocUpdateBlink(now){
 }
 function crocToothHit(px,py){return crocTeeth.some(t=>Math.hypot(px-t.x,py-t.y)<t.r)}
 function screenPoint(lx,ly){
- const m=ctx.getTransform();
- return {x:m.a*lx+m.c*ly+m.e,y:m.b*lx+m.d*ly+m.f};
+ const m=ctx.getTransform(), s=dpr||1;
+ return {x:(m.a*lx+m.c*ly+m.e)/s,y:(m.b*lx+m.d*ly+m.f)/s};
 }
 function tooth(x,y,w,h){
  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y);ctx.lineTo(x+w*.5,y+h);ctx.closePath();ctx.fill();ctx.stroke();
@@ -536,7 +536,7 @@ function crocodile(){
  ctx.restore();
  }
  const eye=screenPoint(50,-24);
- crocEye.x=eye.x; crocEye.y=eye.y; crocEye.r=crocShown?Math.max(20,15*s):Math.max(34,18*s);
+ crocEye.x=eye.x; crocEye.y=eye.y; crocEye.r=crocShown?Math.max(28,18*s):Math.max(48,22*s);
  const lid=Math.max(0,1-crocBlink);
  ctx.fillStyle='#f4f7fb'; ctx.beginPath(); ctx.ellipse(50,-24,13,Math.max(1.1,11*lid),0,0,TAU); ctx.fill();
  ctx.strokeStyle='#234824'; ctx.lineWidth=2; ctx.stroke();
